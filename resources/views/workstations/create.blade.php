@@ -1,0 +1,84 @@
+@extends('layouts.app')
+
+@section('title', 'Новая рабочая станция')
+
+@section('content')
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Добавление новой рабочей станции</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ route('workstations.store') }}" method="POST">
+                        @csrf
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Название *</label>
+                            <input type="text" class="form-control @error('name') is-invalid @enderror"
+                                   id="name" name="name"
+                                   value="{{ old('name') }}" required>
+                            @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="inventory_number" class="form-label">Инвентарный номер *</label>
+                            <input type="text" class="form-control @error('inventory_number') is-invalid @enderror"
+                                   id="inventory_number" name="inventory_number"
+                                   value="{{ old('inventory_number') }}" required>
+                            @error('inventory_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Расположение</label>
+                            <input type="text" class="form-control @error('location') is-invalid @enderror"
+                                   id="location" name="location"
+                                   value="{{ old('location') }}">
+                            @error('location')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Статус *</label>
+                            <select class="form-select @error('status') is-invalid @enderror"
+                                    id="status" name="status" required>
+                                <option value="">Выберите статус...</option>
+                                @foreach($statuses as $value => $label)
+                                    <option value="{{ $value }}" {{ old('status') == $value ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('status')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Примечания</label>
+                            <textarea class="form-control @error('notes') is-invalid @enderror"
+                                      id="notes" name="notes" rows="3">{{ old('notes') }}</textarea>
+                            @error('notes')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ route('workstations.index') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Назад
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Добавить станцию
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
