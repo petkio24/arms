@@ -57,9 +57,16 @@
                                 </span>
                             </td>
                             <td>
-                                @if($component->currentWorkstation)
-                                    <a href="{{ route('workstations.show', $component->currentWorkstation) }}">
-                                        {{ $component->currentWorkstation->name }}
+                                @if($component->current_workstation && $component->current_workstation->location)
+                                    <a href="{{ route('locations.show', $component->current_workstation->location) }}">
+                                        {{ $component->current_workstation->location->name }}
+                                        @if($component->current_workstation->location->room)
+                                            ({{ $component->current_workstation->location->room }})
+                                        @endif
+                                    </a>
+                                @elseif($component->current_workstation)
+                                    <a href="{{ route('workstations.show', $component->current_workstation) }}">
+                                        {{ $component->current_workstation->name }}
                                     </a>
                                 @else
                                     <span class="text-muted">На складе</span>

@@ -38,7 +38,18 @@
                                 </tr>
                                 <tr>
                                     <th>Расположение:</th>
-                                    <td>{{ $workstation->location ?? 'Не указано' }}</td>
+                                    <td>
+                                        @if($workstation->location)
+                                            <a href="{{ route('locations.show', $workstation->location) }}">
+                                                {{ $workstation->location->name }}
+                                                @if($workstation->location->room)
+                                                    ({{ $workstation->location->room }})
+                                                @endif
+                                            </a>
+                                        @else
+                                            <span class="text-muted">Не указано</span>
+                                        @endif
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th>Статус:</th>

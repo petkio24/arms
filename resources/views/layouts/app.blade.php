@@ -22,19 +22,25 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
-                           href="{{ route('dashboard') }}">
+                        <a class="nav-link {{ request()->is('/') || request()->is('dashboard') ? 'active' : '' }}"
+                           href="{{ url('/') }}">
                             <i class="bi bi-speedometer2"></i> Дашборд
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('workstations.*') ? 'active' : '' }}"
+                        <a class="nav-link {{ request()->is('locations*') ? 'active' : '' }}"
+                           href="{{ route('locations.index') }}">
+                            <i class="bi bi-building"></i> Помещения
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->is('workstations*') ? 'active' : '' }}"
                            href="{{ route('workstations.index') }}">
                             <i class="bi bi-pc-display"></i> Рабочие станции
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('components.*') ? 'active' : '' }}"
+                        <a class="nav-link {{ request()->is('components*') ? 'active' : '' }}"
                            href="{{ route('components.index') }}">
                             <i class="bi bi-motherboard"></i> Комплектующие
                         </a>

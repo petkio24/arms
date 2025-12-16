@@ -12,6 +12,7 @@ class Component extends Model
     protected $fillable = [
         'name',
         'type',
+        'category_id',
         'model',
         'serial_number',
         'inventory_number',
@@ -20,10 +21,14 @@ class Component extends Model
         'purchase_date',
         'status',
     ];
-
     protected $casts = [
         'purchase_date' => 'date',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
 
     public function workstations()
     {
@@ -46,6 +51,18 @@ class Component extends Model
     public function getCurrentWorkstationAttribute()
     {
         return $this->currentWorkstation()->first();
+    }
+
+    public function getTypeTextAttribute()
+    {
+        $types = self::getTypes();
+        return $types[$this->type] ?? $this->type;
+    }
+
+    public function getStatusTextAttribute()
+    {
+        $statuses = self::getStatuses();
+        return $statuses[$this->status] ?? $this->status;
     }
 
     // Типы комплектующих

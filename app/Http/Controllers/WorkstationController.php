@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Location;
 use App\Models\Workstation;
 use App\Models\Component;
 use App\Models\ConfigHistory;
@@ -26,8 +27,9 @@ class WorkstationController extends Controller
     public function create()
     {
         $statuses = Workstation::getStatuses();
+        $locations = Location::orderBy('name')->get();
 
-        return view('workstations.create', compact('statuses'));
+        return view('workstations.create', compact('statuses', 'locations'));
     }
 
     public function store(Request $request)
@@ -65,8 +67,9 @@ class WorkstationController extends Controller
     public function edit(Workstation $workstation)
     {
         $statuses = Workstation::getStatuses();
+        $locations = Location::orderBy('name')->get();
 
-        return view('workstations.edit', compact('workstation', 'statuses'));
+        return view('workstations.edit', compact('workstation', 'statuses', 'locations'));
     }
 
     public function update(Request $request, Workstation $workstation)

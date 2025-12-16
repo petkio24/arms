@@ -190,4 +190,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Проверяем, есть ли сообщение об успешном создании помещения
+        const successAlert = document.querySelector('.alert-success');
+        if (successAlert && successAlert.textContent.includes('помещение')) {
+            // Если мы на странице создания/редактирования рабочей станции
+            const locationSelect = document.getElementById('location_id');
+            if (locationSelect) {
+                // Через 1 секунду перезагружаем страницу, чтобы обновился список
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        }
+    });
 });

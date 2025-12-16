@@ -109,7 +109,15 @@
                                     </div>
                                     <p class="mb-1">
                                         <small class="text-muted">
-                                            <i class="bi bi-geo-alt"></i> {{ $workstation->location ?? 'Не указано' }}
+                                            <i class="bi bi-geo-alt"></i>
+                                            @if($workstation->location)
+                                                {{ $workstation->location->name }}
+                                                @if($workstation->location->room)
+                                                    ({{ $workstation->location->room }})
+                                                @endif
+                                            @else
+                                                Не указано
+                                            @endif
                                         </small>
                                     </p>
                                     <small class="text-muted">

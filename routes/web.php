@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\LocationController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DashboardController;
@@ -11,8 +13,14 @@ Auth::routes();
 
 // Защищенные маршруты
 Route::middleware(['auth'])->group(function () {
-    // Dashboard - главная страница
+    // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Locations
+    Route::resource('locations', LocationController::class);
+
+    // Categories
+    Route::resource('categories', CategoryController::class);
 
     // Components
     Route::resource('components', ComponentController::class);

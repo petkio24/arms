@@ -12,7 +12,7 @@ class Workstation extends Model
     protected $fillable = [
         'name',
         'inventory_number',
-        'location',
+        'location_id',
         'status',
         'initial_config',
         'notes',
@@ -21,6 +21,11 @@ class Workstation extends Model
     protected $casts = [
         'initial_config' => 'array',
     ];
+
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
+    }
 
     public function components()
     {
@@ -52,6 +57,17 @@ class Workstation extends Model
         ];
     }
 
+    public function getStatusTextAttribute()
+    {
+        $statuses = [
+            'active' => 'Активна',
+            'maintenance' => 'На обслуживании',
+            'decommissioned' => 'Списана',
+        ];
+
+        return $statuses[$this->status] ?? $this->status;
+    }
+
     // Получить текущую конфигурацию в виде массива
     public function getCurrentConfigAttribute()
     {
@@ -77,5 +93,14 @@ class Workstation extends Model
     public function getCurrentComponentsCountAttribute()
     {
         return $this->currentComponents()->count();
+    }
+
+    public function getLocationInfoAttribute()
+    {
+        if (!$this->location) {
+            return 'Не указано';
+        }
+
+        return $this->location->name . ' (' . $this->location->room . ')';
     }
 }

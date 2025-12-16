@@ -35,11 +35,27 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="location" class="form-label">Расположение</label>
-                            <input type="text" class="form-control @error('location') is-invalid @enderror"
-                                   id="location" name="location"
-                                   value="{{ old('location', $workstation->location) }}">
-                            @error('location')
+                            <label for="location_id" class="form-label">Помещение</label>
+                            <div class="input-group">
+                                <select class="form-select @error('location_id') is-invalid @enderror"
+                                        id="location_id" name="location_id">
+                                    <option value="">Выберите помещение...</option>
+                                    @foreach($locations as $location)
+                                        <option value="{{ $location->id }}"
+                                            {{ old('location_id', $workstation->location_id) == $location->id ? 'selected' : '' }}>
+                                            {{ $location->name }}
+                                            @if($location->room)
+                                                ({{ $location->room }})
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <a href="{{ route('locations.create') }}?redirect_to=workstations.edit&workstation_id={{ $workstation->id }}"
+                                   class="btn btn-outline-secondary" type="button">
+                                    <i class="bi bi-plus"></i> Новое
+                                </a>
+                            </div>
+                            @error('location_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -84,3 +100,24 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Проверяем, есть ли ID нового помещения в сессии
+            const newLocationId = "{{ session('new_location_id') }}";
+            if (newLocationId) {
+                const locationSelect = document.getElementById('location_id');
+                if (locationSelect) {
+                    locationSelect.value = newLocationId;
+
+                    // Показываем сообщение, что помещение выбрано автоматически
+                    const successAlert = document.querySelector('.alert-success');
+                    if (successAlert) {
+                        successAlert.textContent += ' Новое помещение выбрано автоматически.';
+                    }
+                }
+            }
+        });
+    </script>
+@endpush
