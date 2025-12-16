@@ -102,22 +102,18 @@
                             <i class="bi bi-plus-circle"></i> Добавить компонент
                         </button>
                         @if($workstation->status == 'active')
-                            <form action="{{ route('workstations.update', $workstation) }}" method="POST"
-                                  class="d-inline">
+                            <form action="{{ route('workstations.change-status', $workstation) }}" method="POST" class="d-inline w-100">
                                 @csrf
-                                @method('PUT')
                                 <input type="hidden" name="status" value="maintenance">
-                                <button type="submit" class="btn btn-outline-warning w-100">
+                                <button type="submit" class="btn btn-outline-warning w-100 mb-2">
                                     <i class="bi bi-tools"></i> Перевести на обслуживание
                                 </button>
                             </form>
                         @elseif($workstation->status == 'maintenance')
-                            <form action="{{ route('workstations.update', $workstation) }}" method="POST"
-                                  class="d-inline">
+                            <form action="{{ route('workstations.change-status', $workstation) }}" method="POST" class="d-inline w-100">
                                 @csrf
-                                @method('PUT')
                                 <input type="hidden" name="status" value="active">
-                                <button type="submit" class="btn btn-outline-success w-100">
+                                <button type="submit" class="btn btn-outline-success w-100 mb-2">
                                     <i class="bi bi-check-circle"></i> Активировать
                                 </button>
                             </form>

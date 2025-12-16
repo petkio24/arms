@@ -129,4 +129,17 @@ class WorkstationController extends Controller
 
         return view('workstations.history', compact('workstation', 'history'));
     }
+
+    public function changeStatus(Request $request, Workstation $workstation)
+    {
+        $request->validate([
+            'status' => 'required|in:active,maintenance,decommissioned',
+        ]);
+
+        $workstation->status = $request->status;
+        $workstation->save();
+
+        return redirect()->back()
+            ->with('success', 'Статус успешно изменен.');
+    }
 }

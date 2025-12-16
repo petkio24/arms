@@ -29,4 +29,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('workstations.save-initial');
     Route::get('workstations/{workstation}/history', [WorkstationController::class, 'history'])
         ->name('workstations.history');
+    Route::post('workstations/{workstation}/change-status', [WorkstationController::class, 'changeStatus'])
+        ->name('workstations.change-status');
 });
