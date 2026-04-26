@@ -74,7 +74,9 @@
                                         <small class="text-muted">{{ $change->created_at->diffForHumans() }}</small>
                                     </div>
                                     <p class="mb-1">
-                                        <span class="badge bg-secondary">{{ $change->change_type }}</span>
+                                        <span class="badge bg-secondary">
+    {{ \App\Models\ConfigHistory::getChangeTypes()[$change->change_type] ?? $change->change_type }}
+</span>
                                         <small class="text-muted">
                                             Станция: {{ $change->workstation->name }}
                                         </small>
@@ -104,7 +106,7 @@
                                     <div class="d-flex w-100 justify-content-between">
                                         <h6 class="mb-1">{{ $workstation->name }}</h6>
                                         <span class="badge bg-{{ $workstation->status == 'active' ? 'success' : 'warning' }}">
-                                        {{ $workstation->status }}
+                                        {{ $workstation->status == 'active' ? 'Активна' : ($workstation->status == 'maintenance' ? 'Обслуживание' : 'Списана') }}
                                     </span>
                                     </div>
                                     <p class="mb-1">
@@ -121,7 +123,7 @@
                                         </small>
                                     </p>
                                     <small class="text-muted">
-                                        Компонентов: {{ $workstation->current_components_count }}
+                                        Компонентов: {{ $workstation->current_components_count ?? 0 }}
                                     </small>
                                 </a>
                             @endforeach

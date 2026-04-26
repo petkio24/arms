@@ -31,7 +31,7 @@
                                     <th>Тип:</th>
                                     <td>
                                     <span class="badge bg-info">
-                                        {{ Component::getTypes()[$component->type] ?? $component->type }}
+                                        {{ $types[$component->type] ?? $component->type }}
                                     </span>
                                     </td>
                                 </tr>
@@ -63,7 +63,7 @@
                                         ($component->status == 'installed' ? 'primary' :
                                         ($component->status == 'defective' ? 'danger' : 'secondary'))
                                     }}">
-                                        {{ Component::getStatuses()[$component->status] ?? $component->status }}
+                                        {{ $statuses[$component->status] ?? $component->status }}
                                     </span>
                                     </td>
                                 </tr>
@@ -98,7 +98,7 @@
                                 <label class="form-label">Выберите станцию:</label>
                                 <select name="workstation_id" class="form-select" required>
                                     <option value="">Выберите станцию...</option>
-                                    @foreach(App\Models\Workstation::where('status', 'active')->get() as $workstation)
+                                    @foreach($workstations ?? [] as $workstation)
                                         <option value="{{ $workstation->id }}">
                                             {{ $workstation->name }} ({{ $workstation->inventory_number }})
                                         </option>
@@ -117,7 +117,7 @@
                 </div>
             @endif
 
-            @if($component->status == 'installed' && $component->currentWorkstation())
+            @if($component->status == 'installed' && $component->current_workstation)
                 <div class="card">
                     <div class="card-header">
                         <h6 class="mb-0">Текущее расположение</h6>
@@ -125,13 +125,9 @@
                     <div class="card-body">
                         <p class="mb-2">
                             <strong>Станция:</strong>
-                            <a href="{{ route('workstations.show', $component->currentWorkstation()) }}">
-                                {{ $component->currentWorkstation()->name }}
+                            <a href="{{ route('workstations.show', $component->current_workstation) }}">
+                                {{ $component->current_workstation->name }}
                             </a>
-                        </p>
-                        <p class="mb-3">
-                            <strong>Установлен:</strong>
-                            {{ \Carbon\Carbon::parse($component->pivot->installed_at)->format('d.m.Y') }}
                         </p>
                         <form action="{{ route('components.remove', $component) }}" method="POST">
                             @csrf
@@ -174,12 +170,14 @@
                                         {{ $workstation->name }}
                                     </a>
                                 </td>
-                                <td>{{ \Carbon\Carbon::parse($workstation->pivot->installed_at)->format('d.m.Y') }}</td>
+                                <td>{{ $workstation->pivot->installed_at ? \Carbon\Carbon::parse($workstation->pivot->installed_at)->format('d.m.Y') : '-' }}</td>
                                 <td>
                                     @if($workstation->pivot->removed_at)
                                         {{ \Carbon\Carbon::parse($workstation->pivot->removed_at)->format('d.m.Y') }}
-                                    @else
+                                    @elseif(!$workstation->pivot->removed_at && $workstation->id == ($component->current_workstation->id ?? null))
                                         <span class="badge bg-success">Установлен</span>
+                                    @else
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>{{ $workstation->pivot->notes ?? '-' }}</td>

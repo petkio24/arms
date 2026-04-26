@@ -44,7 +44,7 @@ class Component extends Model
             ->wherePivot('removed_at', null)
             ->withPivot('installed_at', 'removed_at', 'notes')
             ->withTimestamps()
-            ->latest('pivot_installed_at');
+            ->latest('installed_at');
     }
 
     // Accessor для получения текущей рабочей станции

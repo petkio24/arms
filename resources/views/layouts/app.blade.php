@@ -89,11 +89,6 @@
 </main>
 
 @auth
-    <footer class="bg-light mt-5 py-3 border-top">
-        <div class="container text-center text-muted">
-            <small>Система учета комплектующих и сборки рабочих станций &copy; {{ date('Y') }}</small>
-        </div>
-    </footer>
 @endauth
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
