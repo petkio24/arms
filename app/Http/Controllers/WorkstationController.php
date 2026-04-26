@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Location;
 use App\Models\Workstation;
 use App\Models\Component;
+use App\Models\Location;
 use App\Models\ConfigHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,9 +13,10 @@ class WorkstationController extends Controller
 {
     public function index()
     {
-        $workstations = Workstation::withCount(['components as current_components_count' => function ($query) {
-            $query->where('removed_at', null);
-        }])
+        $workstations = Workstation::with('location')
+            ->withCount(['components as current_components_count' => function ($query) {
+                $query->whereNull('removed_at');
+            }])
             ->orderBy('name')
             ->paginate(20);
 
@@ -37,7 +38,7 @@ class WorkstationController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'inventory_number' => 'required|string|max:255|unique:workstations',
-            'location' => 'nullable|string|max:255',
+            'location_id' => 'nullable|exists:locations,id',  // Добавляем location_id
             'status' => 'required|string',
             'notes' => 'nullable|string',
         ]);
@@ -50,17 +51,23 @@ class WorkstationController extends Controller
 
     public function show(Workstation $workstation)
     {
-        $workstation->load(['currentComponents', 'configHistory' => function ($query) {
+        $workstation->load(['location', 'currentComponents', 'configHistory' => function ($query) {
             $query->with('user')->latest()->take(20);
         }]);
 
-        $availableComponents = Component::where('status', 'in_stock')->get();
+        $availableComponents = Component::where('status', 'in_stock')
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get();  // Получаем все компоненты на складе
+
         $componentTypes = Component::getTypes();
+        $statuses = Workstation::getStatuses();
 
         return view('workstations.show', compact(
             'workstation',
             'availableComponents',
-            'componentTypes'
+            'componentTypes',
+            'statuses'
         ));
     }
 
@@ -77,7 +84,7 @@ class WorkstationController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'inventory_number' => 'required|string|max:255|unique:workstations,inventory_number,' . $workstation->id,
-            'location' => 'nullable|string|max:255',
+            'location_id' => 'nullable|exists:locations,id',  // Добавляем location_id
             'status' => 'required|string',
             'notes' => 'nullable|string',
         ]);
@@ -90,7 +97,6 @@ class WorkstationController extends Controller
 
     public function destroy(Workstation $workstation)
     {
-        // Проверяем, есть ли установленные комплектующие
         if ($workstation->currentComponents()->count() > 0) {
             return redirect()->back()
                 ->with('error', 'Нельзя удалить рабочую станцию с установленными комплектующими.');
@@ -106,8 +112,9 @@ class WorkstationController extends Controller
     {
         $initial = $workstation->initial_config ?? [];
         $current = $workstation->current_config;
+        $statuses = Workstation::getStatuses();
 
-        return view('workstations.compare', compact('workstation', 'initial', 'current'));
+        return view('workstations.compare', compact('workstation', 'initial', 'current', 'statuses'));
     }
 
     public function saveInitialConfig(Request $request, Workstation $workstation)

@@ -39,4 +39,9 @@ Route::middleware(['auth'])->group(function () {
         ->name('workstations.history');
     Route::post('workstations/{workstation}/change-status', [WorkstationController::class, 'changeStatus'])
         ->name('workstations.change-status');
+    Route::post('/components/{component}/check-compatibility', [ComponentController::class, 'checkCompatibility'])
+        ->name('components.check-compatibility');
+    // routes/web.php
+    Route::post('components/{component}/check-compatibility', [ComponentController::class, 'checkCompatibility'])
+        ->name('components.check-compatibility');
 });

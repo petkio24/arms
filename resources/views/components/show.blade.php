@@ -109,7 +109,8 @@
                                 <label class="form-label">Примечание:</label>
                                 <textarea name="notes" class="form-control" rows="2"></textarea>
                             </div>
-                            <button type="submit" class="btn btn-success w-100">
+                            <div id="compatibility_result" class="mb-3"></div>
+                            <button type="submit" id="install_btn" class="btn btn-success w-100" disabled>
                                 <i class="bi bi-cpu"></i> Установить
                             </button>
                         </form>
@@ -189,4 +190,95 @@
             </div>
         </div>
     @endif
+
+    @push('scripts')
+        <script>
+            document.getElementById('workstation_select').addEventListener('change', function() {
+                const workstationId = this.value;
+                const componentId = {{ $component->id }};
+                const resultDiv = document.getElementById('compatibility_result');
+                const installBtn = document.getElementById('install_btn');
+
+                if (!workstationId) {
+                    resultDiv.innerHTML = '';
+                    installBtn.disabled = true;
+                    return;
+                }
+
+                // Показываем проверку
+                resultDiv.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> Проверка совместимости...</div>';
+                installBtn.disabled = true;
+
+                // AJAX запрос к серверу для проверки
+                fetch('{{ route("components.check-compatibility", $component) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ workstation_id: workstationId })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.compatible) {
+                            resultDiv.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> ✅ Компонент совместим! Можно устанавливать.</div>';
+                            installBtn.disabled = false;
+                        } else {
+                            let html = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> ❌ Обнаружены проблемы:<br>';
+                            data.errors.forEach(error => {
+                                html += '• ' + error + '<br>';
+                            });
+                            html += '</div>';
+                            resultDiv.innerHTML = html;
+                            installBtn.disabled = true;
+                        }
+                    })
+                    .catch(error => {
+                        resultDiv.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> ⚠️ Не удалось проверить совместимость</div>';
+                        installBtn.disabled = false;
+                    });
+            });
+            document.getElementById('workstation_select').addEventListener('change', function() {
+                const workstationId = this.value;
+                const componentId = {{ $component->id }};
+
+                if (workstationId) {
+                    // Показываем индикатор загрузки
+                    const resultDiv = document.getElementById('compatibility_result');
+                    resultDiv.innerHTML = '<div class="alert alert-info">Проверка совместимости...</div>';
+
+                    // Отправляем AJAX запрос
+                    fetch(`/components/${componentId}/check-compatibility`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ workstation_id: workstationId })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.compatible) {
+                                let html = '<div class="alert alert-success">✅ Компонент совместим';
+                                if (data.warnings && data.warnings.length > 0) {
+                                    html += '<br><small>' + data.warnings.join('<br>') + '</small>';
+                                }
+                                html += '</div>';
+                                resultDiv.innerHTML = html;
+                                document.getElementById('install_btn').disabled = false;
+                            } else {
+                                let html = '<div class="alert alert-danger">❌ Обнаружены проблемы:<br>';
+                                html += data.errors.join('<br>');
+                                html += '</div>';
+                                resultDiv.innerHTML = html;
+                                document.getElementById('install_btn').disabled = true;
+                            }
+                        })
+                        .catch(error => {
+                            resultDiv.innerHTML = '<div class="alert alert-warning">⚠️ Не удалось проверить совместимость</div>';
+                        });
+                }
+            });
+        </script>
+    @endpush
 @endsection

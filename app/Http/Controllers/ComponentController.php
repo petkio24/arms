@@ -3,21 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Models\Component;
-use App\Models\ConfigHistory;
 use App\Models\Workstation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ComponentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $components = Component::with(['currentWorkstation' => function ($query) {
-            $query->orderBy('pivot_installed_at', 'desc');
-        }])
-            ->orderBy('type')
-            ->orderBy('name')
-            ->paginate(20);
+        $query = Component::query();
+
+        // Фильтр по типу
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        // Фильтр по статусу
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Поиск по названию, инвентарному номеру, серийному номеру
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('inventory_number', 'like', "%{$search}%")
+                    ->orWhere('serial_number', 'like', "%{$search}%")
+                    ->orWhere('model', 'like', "%{$search}%")
+                    ->orWhere('manufacturer', 'like', "%{$search}%");
+            });
+        }
+
+        // Сортировка
+        $sortBy = $request->get('sort_by', 'type');
+        $sortOrder = $request->get('sort_order', 'asc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Количество на странице
+        $perPage = $request->get('per_page', 20);
+        $components = $query->paginate($perPage)->withQueryString();
 
         $types = Component::getTypes();
         $statuses = Component::getStatuses();
@@ -45,6 +70,10 @@ class ComponentController extends Controller
             'specifications' => 'nullable|string',
             'purchase_date' => 'required|date',
             'status' => 'required|string',
+            'socket' => 'nullable|string',
+            'ram_type' => 'nullable|string',
+            'form_factor' => 'nullable|string',
+            'power' => 'nullable|integer',
         ]);
 
         Component::create($validated);
@@ -56,15 +85,12 @@ class ComponentController extends Controller
     public function show(Component $component)
     {
         $component->load(['workstations' => function ($query) {
-            $query->orderByPivot('installed_at', 'desc');
+            $query->orderBy('installed_at', 'desc');
         }]);
 
-        // Передаем типы и статусы в шаблон
         $types = Component::getTypes();
         $statuses = Component::getStatuses();
-
-        // Получаем активные рабочие станции для формы установки
-        $workstations = \App\Models\Workstation::where('status', 'active')->get();
+        $workstations = Workstation::where('status', 'active')->get();
 
         return view('components.show', compact('component', 'types', 'statuses', 'workstations'));
     }
@@ -89,6 +115,10 @@ class ComponentController extends Controller
             'specifications' => 'nullable|string',
             'purchase_date' => 'required|date',
             'status' => 'required|string',
+            'socket' => 'nullable|string',
+            'ram_type' => 'nullable|string',
+            'form_factor' => 'nullable|string',
+            'power' => 'nullable|integer',
         ]);
 
         $component->update($validated);
@@ -99,8 +129,7 @@ class ComponentController extends Controller
 
     public function destroy(Component $component)
     {
-        // Проверяем, не установлено ли комплектующее
-        if ($component->currentWorkstation()) {
+        if ($component->current_workstation) {
             return redirect()->back()
                 ->with('error', 'Нельзя удалить комплектующее, которое установлено в рабочую станцию.');
         }
@@ -118,31 +147,34 @@ class ComponentController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Проверяем, что комплектующее доступно
         if ($component->status !== 'in_stock') {
             return redirect()->back()
                 ->with('error', 'Комплектующее недоступно для установки.');
         }
 
-        $workstation = \App\Models\Workstation::find($validated['workstation_id']);
+        $workstation = Workstation::find($validated['workstation_id']);
 
-        \DB::transaction(function () use ($component, $workstation, $validated) {
-            // Устанавливаем комплектующее
+        $compatibility = $workstation->checkComponentCompatibility($component);
+
+        if (!$compatibility['compatible']) {
+            return redirect()->back()
+                ->with('error', 'Невозможно установить компонент: ' . implode(', ', $compatibility['errors']));
+        }
+
+        DB::transaction(function () use ($component, $workstation, $validated) {
             $workstation->components()->attach($component->id, [
                 'installed_at' => now(),
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            // Обновляем статус
             $component->status = 'installed';
             $component->save();
 
-            // Записываем в историю
             \App\Models\ConfigHistory::create([
                 'workstation_id' => $workstation->id,
                 'change_description' => "Установлен компонент: {$component->name} ({$component->inventory_number})",
                 'components_before' => $workstation->current_config,
-                'components_after' => \App\Models\Workstation::find($workstation->id)->current_config,
+                'components_after' => $workstation->fresh()->current_config,
                 'change_type' => 'assembly',
                 'user_id' => auth()->id(),
             ]);
@@ -158,45 +190,53 @@ class ComponentController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Находим запись в pivot таблице где компонент установлен и не удален
-        $pivotRecord = \DB::table('workstation_components')
-            ->where('component_id', $component->id)
-            ->whereNull('removed_at')
-            ->first();
+        $currentWorkstation = $component->current_workstation;
 
-        if (!$pivotRecord) {
+        if (!$currentWorkstation) {
             return redirect()->back()
                 ->with('error', 'Комплектующее не установлено.');
         }
 
-        $workstationId = $pivotRecord->workstation_id;
-        $workstation = \App\Models\Workstation::find($workstationId);
-
-        \DB::transaction(function () use ($component, $workstation, $pivotRecord, $validated) {
-            // Отмечаем как удаленное
-            \DB::table('workstation_components')
-                ->where('id', $pivotRecord->id)
+        DB::transaction(function () use ($component, $currentWorkstation, $validated) {
+            DB::table('workstation_components')
+                ->where('workstation_id', $currentWorkstation->id)
+                ->where('component_id', $component->id)
+                ->whereNull('removed_at')
                 ->update([
                     'removed_at' => now(),
-                    'notes' => ($pivotRecord->notes ? $pivotRecord->notes . ' | ' : '') . 'Удалено: ' . ($validated['notes'] ?? 'Причина не указана'),
+                    'notes' => $validated['notes'] ?? 'Удалено',
                 ]);
 
-            // Возвращаем на склад
             $component->status = 'in_stock';
             $component->save();
 
-            // Записываем в историю
             \App\Models\ConfigHistory::create([
-                'workstation_id' => $workstation->id,
+                'workstation_id' => $currentWorkstation->id,
                 'change_description' => "Удален компонент: {$component->name} ({$component->inventory_number})" . ($validated['notes'] ? " - {$validated['notes']}" : ''),
-                'components_before' => $workstation->current_config,
-                'components_after' => \App\Models\Workstation::find($workstation->id)->current_config,
+                'components_before' => $currentWorkstation->current_config,
+                'components_after' => Workstation::find($currentWorkstation->id)->current_config,
                 'change_type' => 'replacement',
                 'user_id' => auth()->id(),
             ]);
         });
 
         return redirect()->back()
-            ->with('success', 'Комплектующее успешно удалено со станции.');
+            ->with('success', 'Комплектующее успешно удалено.');
+    }
+
+    public function checkCompatibility(Request $request, Component $component)
+    {
+        $workstationId = $request->get('workstation_id');
+        $workstation = Workstation::find($workstationId);
+
+        if (!$workstation) {
+            return response()->json([
+                'compatible' => false,
+                'errors' => ['Рабочая станция не найдена']
+            ]);
+        }
+
+        $result = $workstation->checkComponentCompatibility($component);
+        return response()->json($result);
     }
 }

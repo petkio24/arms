@@ -10,12 +10,10 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Информация о рабочей станции</h5>
                         <div class="btn-group">
-                            <a href="{{ route('workstations.edit', $workstation) }}"
-                               class="btn btn-sm btn-outline-primary">
+                            <a href="{{ route('workstations.edit', $workstation) }}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-pencil"></i> Редактировать
                             </a>
-                            <a href="{{ route('workstations.compare', $workstation) }}"
-                               class="btn btn-sm btn-outline-info">
+                            <a href="{{ route('workstations.compare', $workstation) }}" class="btn btn-sm btn-outline-info">
                                 <i class="bi bi-arrows-angle-contract"></i> Сравнить
                             </a>
                             <a href="{{ route('workstations.index') }}" class="btn btn-sm btn-outline-secondary">
@@ -37,7 +35,7 @@
                                     <td><strong>{{ $workstation->inventory_number }}</strong></td>
                                 </tr>
                                 <tr>
-                                    <th>Расположение:</th>
+                                    <th>Помещение:</th>
                                     <td>
                                         @if($workstation->location)
                                             <a href="{{ route('locations.show', $workstation->location) }}">
@@ -55,13 +53,12 @@
                                     <th>Статус:</th>
                                     <td>
                                     <span class="badge bg-{{
-    $workstation->status == 'active' ? 'success' :
-    ($workstation->status == 'maintenance' ? 'warning' : 'secondary')
-}}">
-    {{ $workstation->status == 'active' ? 'Активна' :
-      ($workstation->status == 'maintenance' ? 'На обслуживании' :
-      ($workstation->status == 'decommissioned' ? 'Списана' : $workstation->status)) }}
-</span>
+                                        $workstation->status == 'active' ? 'success' :
+                                        ($workstation->status == 'maintenance' ? 'warning' : 'secondary')
+                                    }}">
+                                        {{ $workstation->status == 'active' ? 'Активна' :
+                                          ($workstation->status == 'maintenance' ? 'На обслуживании' : 'Списана') }}
+                                    </span>
                                     </td>
                                 </tr>
                             </table>
@@ -113,18 +110,18 @@
                             <i class="bi bi-plus-circle"></i> Добавить компонент
                         </button>
                         @if($workstation->status == 'active')
-                            <form action="{{ route('workstations.change-status', $workstation) }}" method="POST" class="d-inline w-100">
+                            <form action="{{ route('workstations.change-status', $workstation) }}" method="POST">
                                 @csrf
                                 <input type="hidden" name="status" value="maintenance">
-                                <button type="submit" class="btn btn-outline-warning w-100 mb-2">
+                                <button type="submit" class="btn btn-outline-warning w-100">
                                     <i class="bi bi-tools"></i> Перевести на обслуживание
                                 </button>
                             </form>
                         @elseif($workstation->status == 'maintenance')
-                            <form action="{{ route('workstations.change-status', $workstation) }}" method="POST" class="d-inline w-100">
+                            <form action="{{ route('workstations.change-status', $workstation) }}" method="POST">
                                 @csrf
                                 <input type="hidden" name="status" value="active">
-                                <button type="submit" class="btn btn-outline-success w-100 mb-2">
+                                <button type="submit" class="btn btn-outline-success w-100">
                                     <i class="bi bi-check-circle"></i> Активировать
                                 </button>
                             </form>
@@ -228,8 +225,7 @@
                 </div>
                 @if($workstation->configHistory->count() > 10)
                     <div class="card-footer text-center">
-                        <a href="{{ route('workstations.history', $workstation) }}"
-                           class="btn btn-sm btn-outline-primary">
+                        <a href="{{ route('workstations.history', $workstation) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-clock-history"></i> Вся история
                         </a>
                     </div>
@@ -247,11 +243,10 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    @if($availableComponents->count() > 0)
+                    @if($availableComponents && $availableComponents->count() > 0)
                         <div class="list-group">
                             @foreach($availableComponents as $component)
-                                <form action="{{ route('components.install', $component) }}" method="POST"
-                                      class="list-group-item">
+                                <form action="{{ route('components.install', $component) }}" method="POST" class="list-group-item">
                                     @csrf
                                     <input type="hidden" name="workstation_id" value="{{ $workstation->id }}">
                                     <div class="d-flex justify-content-between align-items-center">
@@ -259,10 +254,14 @@
                                             <strong>{{ $component->name }}</strong>
                                             <br>
                                             <small class="text-muted">
-                                                {{ $component->model }} | {{ $component->inventory_number }}
+                                                {{ $component->type }} | {{ $component->inventory_number }}
+                                                @if($component->socket)
+                                                    | Сокет: {{ $component->socket }}
+                                                @endif
                                             </small>
                                         </div>
-                                        <button type="submit" class="btn btn-sm btn-success">
+                                        <button type="submit" class="btn btn-sm btn-success"
+                                                onclick="return confirm('Установить компонент {{ $component->name }}?')">
                                             <i class="bi bi-cpu"></i> Установить
                                         </button>
                                     </div>
@@ -270,7 +269,13 @@
                             @endforeach
                         </div>
                     @else
-                        <p class="text-muted mb-0">Нет доступных компонентов на складе</p>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Нет доступных компонентов на складе для установки.
+                        </div>
+                        <a href="{{ route('components.create') }}" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-circle"></i> Добавить компонент
+                        </a>
                     @endif
                 </div>
             </div>
